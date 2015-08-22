@@ -93,7 +93,7 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
 
         yv12toyuy2のthreadsをやめた替わりにSSE2を標準で使うようにしました。
         さらにこれをtrueにすればSSE2の替わりにAVX2で処理を行いますが、3％程度しか
-		速くならないようです……。
+        速くならないようです……。
         CPUの自動判定は行っていないので、AVX2を使えないCPUでtrueにすればエラーがでるでしょう。
 
         ちなみにavisynth2.60の場合、本来できるはずのメモリのアライメント指定が
@@ -102,25 +102,24 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
         avisynth+のほうはこれは既に直っているので問題ない(はず)です。
         参考URL: https://github.com/AviSynth/AviSynthPlus/commit/ab4ea303b4ca78620c2ef90fdaad184bc18b7708
 
-		
-	
+
+
 ライセンス:
 
-	参考にしたddcc.dllがGPLv2なので、こちらもGPLv2にしておきます。
+    参考にしたddcc.dllがGPLv2なので、こちらもGPLv2にしておきます。
 
-	
+
 ソースコード:
 
-	githubで公開中
-	https://github.com/chikuzen/YV12To422/
+    githubで公開中
+    https://github.com/chikuzen/YV12To422/
 
-	
+
 ToDo:
-	・itype=2(cubic補間)の実装
-	・水平方向のシフト機能の実装
-	・CPUの自動判定機能の実装
+    ・itype=2(cubic補間)の実装
+    ・水平方向のシフト機能の実装
+    ・CPUの自動判定機能の実装
 
-	
+
 連絡先:
-	なにかあったらgithubのissueかtwitter(@mtfmk)にでも。
-	
+    なにかあったらgithubのissueかtwitter(@mtfmk)にでも。
