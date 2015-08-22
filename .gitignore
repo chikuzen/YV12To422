@@ -1,0 +1,9 @@
+ddcc/
+*.dll
+*.avs
+*.opensdf
+*.sdf
+*.user
+vs2013/Debug/
+vs2013/Release/
+vs2013/x64/
