@@ -33,7 +33,7 @@
 #include "simd.h"
 
 
-#define YV12TO422_VERSION "0.0.0"
+#define YV12TO422_VERSION "0.1.0"
 
 
 using planar_to_packed = void (__stdcall *)(

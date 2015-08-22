@@ -103,6 +103,16 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
         参考URL: https://github.com/AviSynth/AviSynthPlus/commit/ab4ea303b4ca78620c2ef90fdaad184bc18b7708
 
 
+    lshift - 色差の水平位置をずらすか否か。
+
+        色差の各サンプルを左隣りのものと75:25の割合でまぜることで、左方向に1/4サンプル分
+        ずらします。
+        SMPTEによるYUV4:2:2の色差の水平位置の標準は、横にならんだ輝度のサンプル２つのうちの
+        左側(left origin)ですが、jpegやmpeg1などは420に変換する際に二つのサンプルの中央に
+        なるようにするため、もし補正する必要がある場合はtrueにしましょう。
+
+        default: false
+
 
 ライセンス:
 
@@ -117,7 +127,6 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
 
 ToDo:
     ・itype=2(cubic補間)の実装
-    ・水平方向のシフト機能の実装
     ・CPUの自動判定機能の実装
 
 

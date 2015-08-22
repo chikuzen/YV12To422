@@ -2,7 +2,7 @@
 ## YV12 to YV16/YUY2 converter for AviSynth2.6
 
 YV12To422 is an avisynth filter plugin which based on YV12ToYUY2(ddcc.dll)
-written by Kevin Stone(a.k.a tritical) and was eritten from scratch.
+written by Kevin Stone(a.k.a tritical) and was written from scratch.
 
 ###Info:
     Convert YV12 clip to YV16/YUY2 using SSE2/AVX2.
@@ -128,6 +128,11 @@ written by Kevin Stone(a.k.a tritical) and was eritten from scratch.
            Thus, if you use avisynth2.60, you shouldn't to set this true.
            avisynth+ has no problem.
            see https://github.com/AviSynth/AviSynthPlus/commit/ab4ea303b4ca78620c2ef90fdaad184bc18b7708
+
+####    lshift -
+
+      If set this to true, chroma placement will shift to 1/4 sample to the left.
+	  
 
 ### Lisence:
 
