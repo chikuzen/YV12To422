@@ -122,6 +122,8 @@ written by Kevin Stone(a.k.a tritical) and was eritten from scratch.
 
       Sets whether AVX2 is used or not.
 
+      default: false (use SSE2)
+
         ** Currentry, avisynth2.60 can't make memory alignment anything but 16bytes.
            Thus, if you use avisynth2.60, you shouldn't to set this true.
            avisynth+ has no problem.
