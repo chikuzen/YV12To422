@@ -24,6 +24,7 @@
 
 
 #include <cstdint>
+#include <malloc.h>
 #include <immintrin.h>
 #include <windows.h>
 #include "avisynth.h"
@@ -95,15 +96,19 @@ class YV12To422 : public GenericVideoFilter
 {
     VideoInfo vi_yv16;
     bool yuy2out;
+    bool lshift;
     int dvpal;
     int memalign;
+
     proc_to422 proc_chroma;
+    proc_to422 proc_chroma_qpel_shift_h;
     planar_to_packed yv16toyuy2;
+
 
 public:
     YV12To422(
         PClip child, int itype, bool interlaced, int cplace, double _b,
-        double _c, bool yuy2, bool avx2, IScriptEnvironment* env);
+        double _c, bool yuy2, bool avx2, bool lshift, IScriptEnvironment* env);
     ~YV12To422() {};
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 };
@@ -111,12 +116,15 @@ public:
 
 YV12To422::
 YV12To422(PClip _child, int itype, bool interlaced, int cplace, double b,
-           double c, bool yuy2, bool avx2, IScriptEnvironment* env)
+           double c, bool yuy2, bool avx2, bool _lshift,
+           IScriptEnvironment* env)
   : GenericVideoFilter(_child),
-    yuy2out(yuy2)
+    yuy2out(yuy2),
+    lshift(_lshift)
 {
     memalign = avx2 ? sizeof(__m256i) : sizeof(__m128i);
     proc_chroma = get_proc_chroma(itype, cplace, interlaced, avx2);
+    proc_chroma_qpel_shift_h = get_proc_horizontal_shift(avx2);
     yv16toyuy2 = avx2 ? planar_to_yuy2<__m256i> : planar_to_yuy2<__m128i>;
 
     dvpal = interlaced && cplace == 3 ? -1 : 1;
@@ -124,6 +132,7 @@ YV12To422(PClip _child, int itype, bool interlaced, int cplace, double b,
     memcpy(&vi_yv16, &vi, sizeof(VideoInfo));
     vi_yv16.pixel_type = VideoInfo::CS_YV16;
     vi.pixel_type = yuy2out ? VideoInfo::CS_YUY2 : VideoInfo::CS_YV16;
+
 }
 
 
@@ -137,23 +146,47 @@ PVideoFrame __stdcall YV12To422::
 GetFrame(int n, IScriptEnvironment* env)
 {
     PVideoFrame src = child->GetFrame(n, env);
-    PVideoFrame yv16 = env->NewVideoFrame(vi_yv16, memalign);
 
     const int width_uv = aligned_size(src->GetRowSize(PLANAR_U), memalign);
     const int src_height_uv = src->GetHeight(PLANAR_U);
     const int src_pitch_y = src->GetPitch(PLANAR_Y);
-    const int src_pitch_uv = src->GetPitch(PLANAR_U);
-    const int yv16_pitch_uv = yv16->GetPitch(PLANAR_U);
+    int src_pitch_uv = src->GetPitch(PLANAR_U);
 
     const uint8_t* srcpy = src->GetReadPtr(PLANAR_Y);
+    const uint8_t* srcpu = src->GetReadPtr(PLANAR_U);
+    const uint8_t* srcpv = src->GetReadPtr(PLANAR_V);
+
+    if (lshift) {
+        int buff_pitch = aligned_size(src_pitch_uv, memalign);
+        uint8_t* buffu =
+            (uint8_t*)_mm_malloc(buff_pitch * src_height_uv * 2, memalign);
+        uint8_t* buffv = buffu + buff_pitch * src_height_uv;
+
+        proc_chroma_qpel_shift_h(width_uv, src_height_uv, srcpu, buffu,
+                                 src_pitch_uv, buff_pitch);
+
+        proc_chroma_qpel_shift_h(width_uv, src_height_uv, srcpv, buffv,
+                                 src_pitch_uv, buff_pitch);
+
+        srcpu = buffu;
+        srcpv = buffv;
+        src_pitch_uv = buff_pitch;
+    }
+
+    PVideoFrame yv16 = env->NewVideoFrame(vi_yv16, memalign);
+    const int yv16_pitch_uv = yv16->GetPitch(PLANAR_U);
     uint8_t* yv16pu = yv16->GetWritePtr(PLANAR_U);
     uint8_t* yv16pv = yv16->GetWritePtr(PLANAR_V);
 
-    proc_chroma(width_uv, src_height_uv, src->GetReadPtr(PLANAR_U), yv16pu,
-                src_pitch_uv, yv16_pitch_uv);
+    proc_chroma(width_uv, src_height_uv, srcpu, yv16pu, src_pitch_uv,
+                yv16_pitch_uv);
 
-    proc_chroma(width_uv, src_height_uv, src->GetReadPtr(PLANAR_V), yv16pv,
+    proc_chroma(width_uv, src_height_uv, srcpv, yv16pv,
                 src_pitch_uv * dvpal, yv16_pitch_uv * dvpal);
+
+    if (lshift) {
+        _mm_free((void*)srcpu);
+    }
 
     if (!yuy2out) {
         env->BitBlt(yv16->GetWritePtr(PLANAR_Y), yv16->GetPitch(PLANAR_Y),
@@ -196,7 +229,8 @@ create_yv12to422(AVSValue args, void* user_data, IScriptEnvironment* env)
 
     return new YV12To422(clip, itype, interlaced, cplace,
                           args[6].AsFloat(0.0), args[7].AsFloat(0.75),
-                          args[4].AsBool(true), args[5].AsBool(false), env);
+                          args[4].AsBool(true), args[5].AsBool(false),
+                          args[8].AsBool(false), env);
 }
 
 
@@ -207,7 +241,15 @@ AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors)
 {
     AVS_linkage = vectors;
     env->AddFunction("YV12To422",
-                     "c[itype]i[interlaced]b[cplace]i[yuy2]b[avx2]b[b]f[c]f",
+                     "c"
+                     "[itype]i"
+                     "[interlaced]b"
+                     "[cplace]i"
+                     "[yuy2]b"
+                     "[avx2]b"
+                     "[b]f"
+                     "[c]f"
+                     "[lshift]b",
                      create_yv12to422, nullptr);
     return "YV12To422 ver." YV12TO422_VERSION " by OKA Motofumi";
 }

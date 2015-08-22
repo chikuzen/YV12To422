@@ -39,6 +39,16 @@ static __forceinline __m256i load_reg(const __m256i* addr)
     return _mm256_loadu_si256(addr);
 }
 
+static __forceinline __m128i loadu_reg(const __m128i* addr)
+{
+    return _mm_loadu_si128(addr);
+}
+
+static __forceinline __m256i loadu_reg(const __m256i* addr)
+{
+    return _mm256_loadu_si256(addr);
+}
+
 static __forceinline void stream_reg(__m128i* adrr, __m128i& reg)
 {
     _mm_stream_si128(adrr, reg);
@@ -79,6 +89,16 @@ static __forceinline __m256i and_reg(const __m256i& x, const __m256i& y)
     return _mm256_and_si256(x, y);
 }
 
+static __forceinline __m128i andnot_reg(const __m128i& x, const __m128i& y)
+{
+    return _mm_andnot_si128(x, y);
+}
+
+static __forceinline __m256i andnot_reg(const __m256i& x, const __m256i& y)
+{
+    return _mm256_andnot_si256(x, y);
+}
+
 static __forceinline __m128i srli_epi16(const __m128i& x, int count)
 {
     return _mm_srli_epi16(x, count);
@@ -99,6 +119,15 @@ static __forceinline __m256i slli_epi16(const __m256i& x, int count)
     return _mm256_slli_epi16(x, count);
 }
 
+static __forceinline __m128i cmpeq(const __m128i& x, const __m128i& y)
+{
+    return _mm_cmpeq_epi8(x, y);
+}
+
+static __forceinline __m256i cmpeq(const __m256i& x, const __m256i& y)
+{
+    return _mm256_cmpeq_epi8(x, y);
+}
 
 static __forceinline void set1_epi8(__m128i& x, char v)
 {
@@ -259,5 +288,29 @@ static __forceinline void cvtepu8_epi16x2r(T& x, T& y)
     x = unpacklo_epi8(zero, x);
 }
 
+template <int N>
+static __forceinline __m128i slli_reg(const __m128i& x)
+{
+    return _mm_slli_si128(x, N);
+}
+
+template <int N>
+static __forceinline __m256i slli_reg(const __m256i& x)
+{
+    __m256i mask = _mm256_permute2x128_si256(x, x, _MM_SHUFFLE(0, 0, 3, 0));
+    return _mm256_alignr_epi8(x, mask, 16 - N);
+}
+
+static __forceinline __m128i
+blendv_epi8(const __m128i& x, const __m128i& y, const __m128i& mask)
+{
+    return or_reg(and_reg(mask, y), andnot_reg(mask, x));
+}
+
+static __forceinline __m256i
+blendv_epi8(const __m256i& x, const __m256i& y, const __m256i& mask)
+{
+    return _mm256_blendv_epi8(x, y, mask);
+}
 
 #endif

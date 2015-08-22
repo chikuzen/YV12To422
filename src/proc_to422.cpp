@@ -447,7 +447,32 @@ proc_linear_c3_p(const int width, const int height, const uint8_t* srcp,
 // not implemented yet
 
 
-//////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+
+
+template <typename T>
+static void __stdcall
+proc_qpel_shift_h(const int width, const int height, const uint8_t* srcp,
+                      uint8_t* dstp, const int src_pitch, const int dst_pitch)
+{
+    for (int y = 0; y < height; ++y) {
+
+        T current = load_reg((T*)srcp);
+        T left = slli_reg<1>(current);
+        T mask = slli_reg<1>(cmpeq(current, current));
+        left = blendv_epi8(current, left, mask);
+        stream_reg((T*)dstp, average(current, current, current, left));
+
+        for (int x = sizeof(T); x < width; x += sizeof(T)) {
+            current = load_reg((T*)(srcp + x));
+            left = loadu_reg((T*)(srcp + x - 1));
+            stream_reg((T*)(dstp + x), average(current, current, current, left));
+        }
+        srcp += src_pitch;
+        dstp += dst_pitch;
+    }
+}
+
 
 proc_to422 get_proc_chroma(int itype, int cplace, bool interlaced, bool avx2)
 {
@@ -490,3 +515,9 @@ proc_to422 get_proc_chroma(int itype, int cplace, bool interlaced, bool avx2)
     return func[std::make_tuple(itype, cplace, interlaced, avx2)];
 }
 
+proc_to422 get_proc_horizontal_shift(bool use_avx2)
+{
+    return use_avx2 ?
+        proc_qpel_shift_h<__m256i> :
+        proc_qpel_shift_h<__m128i>;
+}
