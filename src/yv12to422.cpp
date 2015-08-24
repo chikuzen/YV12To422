@@ -219,6 +219,7 @@ GetFrame(int n, IScriptEnvironment* env)
     return dst;
 }
 
+extern int has_avx2();
 
 static AVSValue __cdecl
 create_yv12to422(AVSValue args, void* user_data, IScriptEnvironment* env)
@@ -243,10 +244,14 @@ create_yv12to422(AVSValue args, void* user_data, IScriptEnvironment* env)
         env->ThrowError("YV12To422: cplace must be set to 0, 1, 2, or 3.");
     }
 
-    return new YV12To422(clip, itype, interlaced, cplace,
-                          args[6].AsFloat(0.0), args[7].AsFloat(0.75),
-                          args[4].AsBool(true), args[5].AsBool(false),
-                          args[8].AsBool(false), env);
+    bool avx2 = false;
+    if (args[6].AsBool(false) && has_avx2()) {
+        avx2 = true;
+    }
+
+    return new YV12To422(clip, itype, interlaced, cplace, args[7].AsFloat(0.0),
+                         args[8].AsFloat(0.75), args[5].AsBool(true), avx2,
+                         args[4].AsBool(false), env);
 }
 
 
@@ -261,11 +266,12 @@ AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors)
                      "[itype]i"
                      "[interlaced]b"
                      "[cplace]i"
+                     "[lshift]b"
                      "[yuy2]b"
                      "[avx2]b"
                      "[b]f"
-                     "[c]f"
-                     "[lshift]b",
+                     "[c]f",
+
                      create_yv12to422, nullptr);
     return "YV12To422 ver." YV12TO422_VERSION " by OKA Motofumi";
 }
