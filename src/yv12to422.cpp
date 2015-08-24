@@ -95,6 +95,7 @@ planar_to_yuy2(const int widthuv, const int height, const uint8_t* srcpy,
 class YV12To422 : public GenericVideoFilter
 {
     VideoInfo vi_yv16;
+    VideoInfo vi_src;
     bool yuy2out;
     bool lshift;
     int dvpal;
@@ -129,6 +130,7 @@ YV12To422(PClip _child, int itype, bool interlaced, int cplace, double b,
 
     dvpal = interlaced && cplace == 3 ? -1 : 1;
 
+    memcpy(&vi_src, &vi, sizeof(VideoInfo));
     memcpy(&vi_yv16, &vi, sizeof(VideoInfo));
     vi_yv16.pixel_type = VideoInfo::CS_YV16;
     vi.pixel_type = yuy2out ? VideoInfo::CS_YUY2 : VideoInfo::CS_YV16;
@@ -146,6 +148,20 @@ PVideoFrame __stdcall YV12To422::
 GetFrame(int n, IScriptEnvironment* env)
 {
     PVideoFrame src = child->GetFrame(n, env);
+
+    // check for crop left
+    if ((uintptr_t)src->GetReadPtr(PLANAR_Y) & (memalign - 1) ||
+        (uintptr_t)src->GetReadPtr(PLANAR_U) & (memalign - 1) ||
+        (uintptr_t)src->GetReadPtr(PLANAR_V) & (memalign - 1)) {
+        int planes[] = { PLANAR_Y, PLANAR_U, PLANAR_V };
+        PVideoFrame alt = env->NewVideoFrame(vi_src, memalign);
+        for (auto p : planes) {
+            env->BitBlt(alt->GetWritePtr(p), alt->GetPitch(p),
+                src->GetReadPtr(p), src->GetPitch(p),
+                src->GetRowSize(p), src->GetHeight(p));
+        }
+        src = alt;
+    }
 
     const int width_uv = aligned_size(src->GetRowSize(PLANAR_U), memalign);
     const int src_height_uv = src->GetHeight(PLANAR_U);

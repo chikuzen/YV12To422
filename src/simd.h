@@ -36,7 +36,7 @@ static __forceinline __m128i load_reg(const __m128i* addr)
 
 static __forceinline __m256i load_reg(const __m256i* addr)
 {
-    return _mm256_loadu_si256(addr);
+    return _mm256_load_si256(addr);
 }
 
 static __forceinline __m128i loadu_reg(const __m128i* addr)
