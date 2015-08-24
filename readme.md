@@ -132,7 +132,7 @@ written by Kevin Stone(a.k.a tritical) and was written from scratch.
 ####    lshift -
 
       If set this to true, chroma placement will shift to 1/4 sample to the left.
-	  
+
 
 ### Lisence:
 
