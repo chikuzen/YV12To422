@@ -19,9 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{4E085FEF-2A35-40B9-8BB2-3A6C28E700DE}</ProjectGuid>
+    <ProjectGuid>{4CFDABB1-29C6-4470-8C52-AD77B460FCC9}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <ProjectName>YV12To422</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -41,7 +40,6 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -80,12 +78,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;YV12TOYUY2_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;YV12TO422_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <OpenMPSupport>false</OpenMPSupport>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -95,12 +92,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;YV12TOYUY2_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;YV12TO422_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <OpenMPSupport>false</OpenMPSupport>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -109,17 +105,15 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;YV12TOYUY2_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;YV12TO422_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Full</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
-      <OpenMPSupport>true</OpenMPSupport>
       <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
@@ -133,17 +127,15 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;YV12TOYUY2_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;YV12TO422_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Full</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
-      <OpenMPSupport>false</OpenMPSupport>
       <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
@@ -155,6 +147,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\cpu_check.cpp" />
     <ClCompile Include="..\src\proc_to422.cpp" />
     <ClCompile Include="..\src\yv12to422.cpp" />
   </ItemGroup>

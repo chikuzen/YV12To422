@@ -3,7 +3,6 @@ ddcc/
 *.avs
 *.opensdf
 *.sdf
-*.sln
 *.suo
 *.user
 *.zip
