@@ -3,7 +3,10 @@ ddcc/
 *.avs
 *.opensdf
 *.sdf
+*.sln
+*.suo
 *.user
+*.zip
 vs2013/Debug/
 vs2013/Release/
 vs2013/x64/
