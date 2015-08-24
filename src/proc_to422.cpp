@@ -48,7 +48,7 @@ proc_point_p(const int width, const int height, const uint8_t* srcp,
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < w; ++x) {
             T reg = load_reg(s + x);
-            stream_reg(d + x, reg);
+            stream_reg(d      + x, reg);
             stream_reg(d + dp + x, reg);
         }
         s += sp;
@@ -76,11 +76,11 @@ proc_point_i(const int width, const int height, const uint8_t* srcp,
     for (int y = 0; y < height; y += 2) {
         for (int x = 0; x < w; ++x) {
             T reg = load_reg(s + x);
-            stream_reg(d + x, reg);
+            stream_reg(d + 0 * dp + x, reg);
             stream_reg(d + 2 * dp + x, reg);
             reg = load_reg(s + sp + x);
-            stream_reg(d + dp + x, reg);
-            stream_reg(d + dp * 3 + x, reg);
+            stream_reg(d + 1 * dp + x, reg);
+            stream_reg(d + 3 * dp + x, reg);
         }
         s += 2 * sp;
         d += 4 * dp;
@@ -104,10 +104,10 @@ proc_linear_c0_p(const int width, const int height, const uint8_t* srcp,
 
     for (int y = 0; y < height - 1; ++y) {
         for (int x = 0; x < w; ++x) {
-            T reg0 = load_reg(s + x);
+            T reg0 = load_reg(s      + x);
             T reg1 = load_reg(s + sp + x);
             T avg = average(reg0, reg1);
-            stream_reg(d + x, reg0);
+            stream_reg(d      + x, reg0);
             stream_reg(d + dp + x, avg);
         }
         s += sp;
@@ -155,7 +155,7 @@ proc_linear_c0_i(const int width, const int height, const uint8_t* srcp,
     for (int x = 0; x < w; ++x) {
         T reg0 = load_reg(s      + x);
         T reg1 = load_reg(s + sp + x);
-        stream_reg(d          + x, reg0);
+        stream_reg(d + 0 * dp + x, reg0);
         stream_reg(d + 1 * dp + x, reg1);
         stream_reg(d + 2 * dp + x, reg0);
         stream_reg(d + 3 * dp + x, reg1);
@@ -179,9 +179,9 @@ proc_linear_c1_p(const int width, const int height, const uint8_t* srcp,
 
     for (int y = 0; y < height - 1; ++y) {
         for (int x = 0; x < w; ++x) {
-            T reg0 = load_reg(s + x);
+            T reg0 = load_reg(s      + x);
             T reg1 = load_reg(s + sp + x);
-            stream_reg(d +      x, average(reg0, reg0, reg0, reg1));
+            stream_reg(d      + x, average(reg0, reg0, reg0, reg1));
             stream_reg(d + dp + x, average(reg0, reg1, reg1, reg1));
         }
         s += sp;
@@ -274,8 +274,8 @@ proc_linear_c2_p(const int width, const int height, const uint8_t* srcp,
     memcpy(d, s, width);
     s += sp;
     d += dp;
-    memcpy(d, s, width);
-    memcpy(d + dp, s, width);
+    memcpy(d + 0 * dp, s, width);
+    memcpy(d + 1 * dp, s, width);
     memcpy(d + 2 * dp, s, width);
 }
 
