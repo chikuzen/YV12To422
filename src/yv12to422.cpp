@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <malloc.h>
 #include <immintrin.h>
+#include <omp.h>
 #include <windows.h>
 #include "avisynth.h"
 
@@ -36,7 +37,7 @@
 #include "simd.h"
 
 
-#define YV12TO422_VERSION "0.2.0"
+#define YV12TO422_VERSION "0.3.0"
 
 
 using planar_to_packed = void (__stdcall *)(
@@ -88,13 +89,14 @@ planar_to_yuy2(const int widthuv, const int height, const uint8_t* srcpy,
 
 class YV12To422 : public GenericVideoFilter
 {
-    VideoInfo vi_yv16;
     VideoInfo vi_src;
+    VideoInfo vi_yv16;
     VideoInfo vi_yuy2;
     bool yuy2out;
     bool lshift;
     int dvpal;
     int memalign;
+    int num_threads;
 
     proc_to422 proc_chroma;
     proc_to422 proc_chroma_qpel_shift_h;
@@ -104,7 +106,8 @@ class YV12To422 : public GenericVideoFilter
 public:
     YV12To422(
         PClip child, int itype, bool interlaced, int cplace, double _b,
-        double _c, bool yuy2, bool avx2, bool lshift, IScriptEnvironment* env);
+        double _c, bool yuy2, bool avx2, bool lshift, int threads,
+        IScriptEnvironment* env);
     ~YV12To422() {};
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 };
@@ -112,11 +115,12 @@ public:
 
 YV12To422::
 YV12To422(PClip _child, int itype, bool interlaced, int cplace, double b,
-           double c, bool yuy2, bool avx2, bool _lshift,
+           double c, bool yuy2, bool avx2, bool _lshift, int threads,
            IScriptEnvironment* env)
   : GenericVideoFilter(_child),
     yuy2out(yuy2),
-    lshift(_lshift)
+    lshift(_lshift),
+    num_threads(threads)
 {
     memalign = avx2 ? sizeof(__m256i) : sizeof(__m128i);
     proc_chroma = get_proc_chroma(itype, cplace, interlaced, avx2);
@@ -166,27 +170,19 @@ GetFrame(int n, IScriptEnvironment* env)
     const int width_uv = aligned_size(src->GetRowSize(PLANAR_U), memalign);
     const int src_height_uv = src->GetHeight(PLANAR_U);
     const int src_pitch_y = src->GetPitch(PLANAR_Y);
-    int src_pitch_uv = src->GetPitch(PLANAR_U);
+    int src_pitch_u = src->GetPitch(PLANAR_U);
+    int src_pitch_v = src_pitch_u;
 
     const uint8_t* srcpy = src->GetReadPtr(PLANAR_Y);
     const uint8_t* srcpu = src->GetReadPtr(PLANAR_U);
     const uint8_t* srcpv = src->GetReadPtr(PLANAR_V);
 
+    int buff_pitch = aligned_size(src_pitch_u, memalign);
+    uint8_t* buffu = nullptr;
+    uint8_t* buffv = nullptr;
     if (lshift) {
-        int buff_pitch = aligned_size(src_pitch_uv, memalign);
-        uint8_t* buffu =
-            (uint8_t*)_mm_malloc(buff_pitch * src_height_uv * 2, memalign);
-        uint8_t* buffv = buffu + buff_pitch * src_height_uv;
-
-        proc_chroma_qpel_shift_h(width_uv, src_height_uv, srcpu, buffu,
-                                 src_pitch_uv, buff_pitch);
-
-        proc_chroma_qpel_shift_h(width_uv, src_height_uv, srcpv, buffv,
-                                 src_pitch_uv, buff_pitch);
-
-        srcpu = buffu;
-        srcpv = buffv;
-        src_pitch_uv = buff_pitch;
+        buffu = (uint8_t*)_mm_malloc(buff_pitch * src_height_uv * 2, memalign);
+        buffv = buffu + buff_pitch * src_height_uv;
     }
 
     PVideoFrame yv16 = env->NewVideoFrame(vi_yv16, memalign);
@@ -194,14 +190,37 @@ GetFrame(int n, IScriptEnvironment* env)
     uint8_t* yv16pu = yv16->GetWritePtr(PLANAR_U);
     uint8_t* yv16pv = yv16->GetWritePtr(PLANAR_V);
 
-    proc_chroma(width_uv, src_height_uv, srcpu, yv16pu, src_pitch_uv,
-                yv16_pitch_uv);
+    omp_set_num_threads(num_threads);
 
-    proc_chroma(width_uv, src_height_uv, srcpv, yv16pv,
-                src_pitch_uv * dvpal, yv16_pitch_uv * dvpal);
+    #pragma omp parallel sections
+    {
+        #pragma omp section
+        {
+            if (lshift) {
+                proc_chroma_qpel_shift_h(width_uv, src_height_uv, srcpu, buffu,
+                                         src_pitch_u, buff_pitch);
+                srcpu = buffu;
+                src_pitch_u = buff_pitch;
+            }
+            proc_chroma(width_uv, src_height_uv, srcpu, yv16pu, src_pitch_u,
+                        yv16_pitch_uv);
+        }
+
+        #pragma omp section
+        {
+            if (lshift) {
+                proc_chroma_qpel_shift_h(width_uv, src_height_uv, srcpv, buffv,
+                                         src_pitch_v, buff_pitch);
+                srcpv = buffv;
+                src_pitch_v = buff_pitch;
+            }
+            proc_chroma(width_uv, src_height_uv, srcpv, yv16pv,
+                        src_pitch_v * dvpal, yv16_pitch_uv * dvpal);
+        }
+    }
 
     if (lshift) {
-        _mm_free((void*)srcpu);
+        _mm_free((void*)buffu);
     }
 
     if (!yuy2out) {
@@ -249,9 +268,10 @@ create_yv12to422(AVSValue args, void* user_data, IScriptEnvironment* env)
         avx2 = true;
     }
 
-    return new YV12To422(clip, itype, interlaced, cplace, args[7].AsFloat(0.0),
-                         args[8].AsFloat(0.75), args[5].AsBool(true), avx2,
-                         args[4].AsBool(false), env);
+    return new YV12To422(clip, itype, interlaced, cplace, args[8].AsFloat(0.0),
+                         args[9].AsFloat(0.75), args[5].AsBool(true), avx2,
+                         args[4].AsBool(false), args[7].AsBool(false) ? 2 : 1,
+                         env);
 }
 
 
@@ -262,15 +282,16 @@ AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors)
 {
     AVS_linkage = vectors;
     env->AddFunction("YV12To422",
-                     "c"
-                     "[itype]i"
-                     "[interlaced]b"
-                     "[cplace]i"
-                     "[lshift]b"
-                     "[yuy2]b"
-                     "[avx2]b"
-                     "[b]f"
-                     "[c]f",
+                     /* 0*/ "c"
+                     /* 1*/ "[itype]i"
+                     /* 2*/ "[interlaced]b"
+                     /* 3*/ "[cplace]i"
+                     /* 4*/ "[lshift]b"
+                     /* 5*/ "[yuy2]b"
+                     /* 6*/ "[avx2]b"
+                     /* 7*/ "[threads]b"
+                     /* 8*/ "[b]f"
+                     /* 9*/ "[c]f",
 
                      create_yv12to422, nullptr);
     return "YV12To422 ver." YV12TO422_VERSION " by OKA Motofumi";

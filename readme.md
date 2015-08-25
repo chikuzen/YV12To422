@@ -15,8 +15,8 @@ written by Kevin Stone(a.k.a tritical) and was written from scratch.
 
 ### Syntax:
 
-    YV12To422(clip, int "itype", bool "interlaced", int "cplace",
-              bool "yuy2", bool "avx2")
+    YV12To422(clip, int "itype", bool "interlaced", int "cplace", bool "lshift",
+              bool "yuy2", bool "avx2", bool "threads")
 
 
     NOTE: these parameters may be changed later.
@@ -70,7 +70,7 @@ written by Kevin Stone(a.k.a tritical) and was written from scratch.
                 This would be the case if the 4:2:2 -> 4:2:0 conversion was performed by
                 separating the fields, and then doing a 4:2:2 -> 4:2:0 conversion on each field
                 by averaging chroma from every two line pair.
-         
+
         interlaced input (interlaced=true, interlaced upsampling):
 
             0 - chroma is aligned with top line of each two line pair within each field
@@ -111,6 +111,13 @@ written by Kevin Stone(a.k.a tritical) and was written from scratch.
                 2 (if interlaced = true)
 
 
+####    lshift -
+
+      If set this to true, chroma placement will shift to 1/4 sample to the left.
+
+        default: false
+
+
 ####    yuy2 -
 
       Sets whether or not the output video format is packed(YUY2) or planar(YV16).
@@ -129,9 +136,14 @@ written by Kevin Stone(a.k.a tritical) and was written from scratch.
            avisynth+ has no problem.
            see https://github.com/AviSynth/AviSynthPlus/commit/ab4ea303b4ca78620c2ef90fdaad184bc18b7708
 
-####    lshift -
 
-      If set this to true, chroma placement will shift to 1/4 sample to the left.
+####    threads -
+
+      When sets this to true, V-plain is processed with a different thread at the
+	  same time with U-plain.
+	  However, processing doesn't always become speedy by this.
+
+	  default: false (use single thread)
 
 
 ### Lisence:

@@ -17,8 +17,8 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
 
 使い方：
 
-    YV12To422(clip, int "itype", bool "interlaced", int "cplace", bool "yuy2",
-              bool "avx2")
+    YV12To422(clip, int "itype", bool "interlaced", int "cplace", bool "lshift",
+              bool "yuy2", bool "avx2", bool "threads")
 
     まだitype=2とか実装してないので、オプションは変更される可能性が大きいです。
 
@@ -80,6 +80,18 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
 
         default: interlaced=falseなら1、trueなら2
 
+
+    lshift - 色差の水平位置をずらすか否か。
+
+        色差の各サンプルを左隣りのものと75:25の割合でまぜることで、左方向に1/4サンプル分
+        ずらします。
+        SMPTEによるYUV4:2:2の色差の水平位置の標準は、横にならんだ輝度のサンプル２つのうちの
+        左側(left origin)ですが、jpegやmpeg1などは420に変換する際に二つのサンプルの中央に
+        なるようにするため、もし補正する必要がある場合はtrueにしましょう。
+
+        default: false
+
+
     yuy2 - 出力をYUY2にするか否か
 
         このフィルターは420->422変換をyv12toyuy2とは違って、まずは一端yv16に変換します。
@@ -102,15 +114,13 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
         参考URL: https://github.com/AviSynth/AviSynthPlus/commit/ab4ea303b4ca78620c2ef90fdaad184bc18b7708
 
 
-    lshift - 色差の水平位置をずらすか否か。
+    threads - 色差の処理を2スレッドで行うか否か。
 
-        色差の各サンプルを左隣りのものと75:25の割合でまぜることで、左方向に1/4サンプル分
-        ずらします。
-        SMPTEによるYUV4:2:2の色差の水平位置の標準は、横にならんだ輝度のサンプル２つのうちの
-        左側(left origin)ですが、jpegやmpeg1などは420に変換する際に二つのサンプルの中央に
-        なるようにするため、もし補正する必要がある場合はtrueにしましょう。
-
-        default: false
+        trueにすれば色差の補間処理をUとVで別のスレッドで同時に行います。
+        ただし、速くなるかどうかは素材の解像度や補間処理の複雑さによって異なります。
+        1920x1080程度のサイズでitype=0の場合は、trueにしてもほとんど変わらないか
+        かえって遅くなることが多いようです。
+        下手にtrueにするよりはbitcoinマイニングでもしてるほうがまだ建設的かもしれません。
 
 
 ライセンス:
