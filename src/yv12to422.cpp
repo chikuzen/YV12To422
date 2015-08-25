@@ -154,9 +154,9 @@ GetFrame(int n, IScriptEnvironment* env)
     PVideoFrame src = child->GetFrame(n, env);
 
     // check for crop left
-    if ((uintptr_t)src->GetReadPtr(PLANAR_Y) & (memalign - 1) ||
-        (uintptr_t)src->GetReadPtr(PLANAR_U) & (memalign - 1) ||
-        (uintptr_t)src->GetReadPtr(PLANAR_V) & (memalign - 1)) {
+    if (((uintptr_t)src->GetReadPtr(PLANAR_Y) |
+         (uintptr_t)src->GetReadPtr(PLANAR_U) |
+         (uintptr_t)src->GetReadPtr(PLANAR_V)) & (memalign - 1)) {
         int planes[] = { PLANAR_Y, PLANAR_U, PLANAR_V };
         PVideoFrame alt = env->NewVideoFrame(vi_src, memalign);
         for (auto p : planes) {
