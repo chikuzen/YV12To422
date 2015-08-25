@@ -26,6 +26,8 @@
 #ifndef YV12TO422_PROC_TO_422_H
 #define YV12TO422_PROC_TO_422_H
 
+#pragma warning(disable:4752)
+
 #include <cstdint>
 
 using proc_to422 = void (__stdcall *)(
