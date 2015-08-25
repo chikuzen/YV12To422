@@ -38,4 +38,10 @@ proc_to422 get_proc_chroma(int itype, int cplace, bool interlaced, bool avx2);
 
 proc_to422 get_proc_horizontal_shift(bool use_avx2);
 
+static inline int aligned_size(int x, int align)
+{
+    return ((x + align - 1) / align) * align;
+}
+
+
 #endif

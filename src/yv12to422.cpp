@@ -72,19 +72,10 @@ planar_to_yuy2(const int widthuv, const int height, const uint8_t* srcpy,
             y3 = or_reg(y3, unpackhi_epi16(u1, v1));
 
             int dpos = 4 * x;
-            stream_reg((T*)(dstp + dpos), y0);
-
-            dpos += sizeof(T);
-            if (dst_rowsize < dpos) continue;
-            stream_reg((T*)(dstp + dpos), y1);
-
-            dpos += sizeof(T);
-            if (dst_rowsize < dpos) continue;
-            stream_reg((T*)(dstp + dpos), y2);
-
-            dpos += sizeof(T);
-            if (dst_rowsize < dpos) continue;
-            stream_reg((T*)(dstp + dpos), y3);
+            stream_reg((T*)(dstp + dpos + 0 * sizeof(T)), y0);
+            stream_reg((T*)(dstp + dpos + 1 * sizeof(T)), y1);
+            stream_reg((T*)(dstp + dpos + 2 * sizeof(T)), y2);
+            stream_reg((T*)(dstp + dpos + 3 * sizeof(T)), y3);
         }
         srcpy += src_pitch_y;
         srcpu += src_pitch_uv;
@@ -99,6 +90,7 @@ class YV12To422 : public GenericVideoFilter
 {
     VideoInfo vi_yv16;
     VideoInfo vi_src;
+    VideoInfo vi_yuy2;
     bool yuy2out;
     bool lshift;
     int dvpal;
@@ -136,19 +128,19 @@ YV12To422(PClip _child, int itype, bool interlaced, int cplace, double b,
     memcpy(&vi_src, &vi, sizeof(VideoInfo));
     memcpy(&vi_yv16, &vi, sizeof(VideoInfo));
     vi_yv16.pixel_type = VideoInfo::CS_YV16;
-    vi.pixel_type = yuy2out ? VideoInfo::CS_YUY2 : VideoInfo::CS_YV16;
+    if (yuy2out) {
+        vi.pixel_type = VideoInfo::CS_YUY2;
+        memcpy(&vi_yuy2, &vi, sizeof(VideoInfo));
+        vi_yuy2.width = aligned_size(vi.width, memalign * 2);
+    } else {
+        vi.pixel_type = VideoInfo::CS_YV16;
+    }
 
 #ifdef DEBUG
     std::cerr << "cplace:" << cplace << " itype:" << itype << " interlaced:"
         << interlaced << " yuy2:" << yuy2out << " avx2:" << avx2 <<
         " threads: " << threads << "\n";
 #endif
-}
-
-
-static inline int aligned_size(int x, int align)
-{
-    return ((x + align - 1) / align) * align;
 }
 
 
@@ -218,7 +210,7 @@ GetFrame(int n, IScriptEnvironment* env)
         return yv16;
     }
 
-    PVideoFrame dst = env->NewVideoFrame(vi, memalign);
+    PVideoFrame dst = env->NewVideoFrame(vi_yuy2, memalign);
 
     yv16toyuy2(yv16->GetRowSize(PLANAR_U), vi.height, srcpy, yv16pu, yv16pv,
                dst->GetWritePtr(), dst->GetRowSize(), src_pitch_y,
