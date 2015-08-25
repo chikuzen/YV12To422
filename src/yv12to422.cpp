@@ -22,6 +22,9 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
 */
 
+#ifdef DEBUG
+    #include <iostream>
+#endif
 
 #include <cstdint>
 #include <malloc.h>
@@ -135,6 +138,11 @@ YV12To422(PClip _child, int itype, bool interlaced, int cplace, double b,
     vi_yv16.pixel_type = VideoInfo::CS_YV16;
     vi.pixel_type = yuy2out ? VideoInfo::CS_YUY2 : VideoInfo::CS_YV16;
 
+#ifdef DEBUG
+    std::cerr << "cplace:" << cplace << " itype:" << itype << " interlaced:"
+        << interlaced << " yuy2:" << yuy2out << " avx2:" << avx2 <<
+        " threads: " << threads << "\n";
+#endif
 }
 
 
