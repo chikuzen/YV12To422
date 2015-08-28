@@ -7,6 +7,9 @@ written by Kevin Stone(a.k.a tritical) and was written from scratch.
 ###Info:
     Convert YV12 clip to YV16/YUY2 using SSE2/AVX2.
 
+    version 1.0.0
+
+
 ### Requirement:
     - avisynth2.60/avisynth+r1576 or later.
     - SSE2 capable CPU.

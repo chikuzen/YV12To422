@@ -14,6 +14,7 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
 ・WindowsVista sp2以降
 ・VisualStudio2013用VC++再頒布可能パッケージ
 
+バージョン 1.0.0
 
 使い方：
 
@@ -146,7 +147,6 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
 
 
 ToDo:
-    ・itype=2(cubic補間)の実装
 
 
 連絡先:
