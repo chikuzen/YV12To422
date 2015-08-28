@@ -15,12 +15,19 @@ written by Kevin Stone(a.k.a tritical) and was written from scratch.
 
 ### Syntax:
 
-    YV12To422(clip, int "itype", bool "interlaced", int "cplace", bool "lshift",
-              bool "yuy2", bool "avx2", bool "threads")
+    YV12To422(clip, bool "interlaced", int "itype", int "cplace", bool "lshift",
+              bool "yuy2", bool "avx2", bool "threads", float "b", float "c")
 
 
     NOTE: these parameters may be changed later.
           (Sorry, I'm not enthusiastic about keeping backward compatibility.)
+
+
+####    interlaced -
+
+      Sets whether or not the input video is interlaced or progressive.
+
+      default:  false
 
 
 ####    itype -
@@ -29,16 +36,10 @@ written by Kevin Stone(a.k.a tritical) and was written from scratch.
 
           0 - duplicate (nearest neighbor)
           1 - linear interpolation
-          2 - not implemented yet
+          2 - Mitchell-Netravali two-part cubic interpolation
+                 (adjustable b/c parameters to adjust blurring/ringing)
 
-      default:  1
-
-
-####    interlaced -
-
-      Sets whether or not the input video is interlaced or progressive.
-
-      default:  false
+      default:  2
 
 
 ####    cplace -
@@ -140,10 +141,17 @@ written by Kevin Stone(a.k.a tritical) and was written from scratch.
 ####    threads -
 
       When sets this to true, V-plain is processed with a different thread at the
-	  same time with U-plain.
-	  However, processing doesn't always become speedy by this.
+      same time with U-plain.
+      However, processing doesn't always become speedy by this.
 
-	  default: false (use single thread)
+      default: false (use single thread)
+
+
+####    b / c -
+
+      Adjusts properties of cubic interpolation (itype=2).  Same as Avisynth's BicubicResize filter.
+
+      default:  0.0,0.75
 
 
 ### Lisence:

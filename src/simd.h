@@ -119,6 +119,16 @@ static __forceinline __m256i slli_epi16(const __m256i& x, int count)
     return _mm256_slli_epi16(x, count);
 }
 
+static __forceinline __m128i srli_epi32(const __m128i& x, int count)
+{
+    return _mm_srli_epi32(x, count);
+}
+
+static __forceinline __m256i srli_epi32(const __m256i& x, int count)
+{
+    return _mm256_srli_epi32(x, count);
+}
+
 static __forceinline __m128i cmpeq(const __m128i& x, const __m128i& y)
 {
     return _mm_cmpeq_epi8(x, y);
@@ -149,6 +159,16 @@ static __forceinline void set1_epi16(__m256i& x, int16_t v)
     x = _mm256_set1_epi16(v);
 }
 
+static __forceinline void set1_epi32(__m128i& x, int32_t v)
+{
+    x = _mm_set1_epi32(v);
+}
+
+static __forceinline void set1_epi32(__m256i& x, int32_t v)
+{
+    x = _mm256_set1_epi32(v);
+}
+
 static __forceinline __m128i add_epu16(const __m128i& x, const __m128i& y)
 {
     return _mm_adds_epu16(x, y);
@@ -157,6 +177,16 @@ static __forceinline __m128i add_epu16(const __m128i& x, const __m128i& y)
 static __forceinline __m256i add_epu16(const __m256i& x, const __m256i& y)
 {
     return _mm256_adds_epu16(x, y);
+}
+
+static __forceinline __m128i add_epi32(const __m128i& x, const __m128i& y)
+{
+    return _mm_add_epi32(x, y);
+}
+
+static __forceinline __m256i add_epi32(const __m256i& x, const __m256i& y)
+{
+    return _mm256_add_epi32(x, y);
 }
 
 static __forceinline __m128i subs_epu8(const __m128i& x, const __m128i& y)
@@ -187,6 +217,16 @@ static __forceinline __m128i mullo_epi16(const __m128i& x, const __m128i& y)
 static __forceinline __m256i mullo_epi16(const __m256i& x, const __m256i& y)
 {
     return _mm256_mullo_epi16(x, y);
+}
+
+static __forceinline __m128i madd_epi16(const __m128i& x, const __m128i& y)
+{
+    return _mm_madd_epi16(x, y);
+}
+
+static __forceinline __m256i madd_epi16(const __m256i& x, const __m256i& y)
+{
+    return _mm256_madd_epi16(x, y);
 }
 
 static __forceinline __m128i average(const __m128i& x, const __m128i& y)
@@ -272,6 +312,17 @@ static __forceinline __m256i packus_epi16(const __m256i& x, const __m256i& y)
     return _mm256_permute4x64_epi64(_mm256_packus_epi16(x, y), 216);
 }
 
+static __forceinline __m128i packs_epi32(const __m128i& x, const __m128i& y)
+{
+    return _mm_packs_epi32(x, y);
+}
+
+static __forceinline __m256i packs_epi32(const __m256i& x, const __m256i& y)
+{
+    //3,1,2,0 -> 0b11011000 = 216
+    return _mm256_permute4x64_epi64(_mm256_packs_epi32(x, y), 216);
+}
+
 template <typename T>
 static __forceinline void cvtepu8_epi16x2(T& x, T& y)
 {
@@ -286,6 +337,14 @@ static __forceinline void cvtepu8_epi16x2r(T& x, T& y)
     const T zero = xor_reg(x, x);
     y = unpackhi_epi8(zero, x);
     x = unpacklo_epi8(zero, x);
+}
+
+template <typename T>
+static __forceinline void cvtepu16_epi32x2(T& x, T& y)
+{
+    const T zero = xor_reg(x, x);
+    y = unpackhi_epi16(x, zero);
+    x = unpacklo_epi16(x, zero);
 }
 
 template <int N>

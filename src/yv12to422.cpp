@@ -27,6 +27,7 @@
 #endif
 
 #include <cstdint>
+#include <cmath>
 #include <malloc.h>
 #include <immintrin.h>
 #include <omp.h>
@@ -97,9 +98,10 @@ class YV12To422 : public GenericVideoFilter
     int dvpal;
     int memalign;
     int num_threads;
+    int16_t cubic_coefficients[8];
 
     proc_to422 proc_chroma;
-    proc_to422 proc_chroma_qpel_shift_h;
+    proc_horizontal proc_chroma_qpel_shift_h;
     planar_to_packed yv16toyuy2;
 
 
@@ -111,6 +113,9 @@ public:
     ~YV12To422() {};
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 };
+
+
+extern void set_cubic_coefficients(double b, double c, int16_t* array, bool interlaced, int cplace);
 
 
 YV12To422::
@@ -126,6 +131,9 @@ YV12To422(PClip _child, int itype, bool interlaced, int cplace, double b,
     proc_chroma = get_proc_chroma(itype, cplace, interlaced, avx2);
     proc_chroma_qpel_shift_h = get_proc_horizontal_shift(avx2);
     yv16toyuy2 = avx2 ? planar_to_yuy2<__m256i> : planar_to_yuy2<__m128i>;
+    if (itype == 2) {
+        set_cubic_coefficients(b, c, cubic_coefficients, interlaced, cplace);
+    }
 
     dvpal = interlaced && cplace == 3 ? -1 : 1;
 
@@ -203,7 +211,7 @@ GetFrame(int n, IScriptEnvironment* env)
                 src_pitch_u = buff_pitch;
             }
             proc_chroma(width_uv, src_height_uv, srcpu, yv16pu, src_pitch_u,
-                        yv16_pitch_uv);
+                        yv16_pitch_uv, cubic_coefficients);
         }
 
         #pragma omp section
@@ -215,7 +223,7 @@ GetFrame(int n, IScriptEnvironment* env)
                 src_pitch_v = buff_pitch;
             }
             proc_chroma(width_uv, src_height_uv, srcpv, yv16pv,
-                        src_pitch_v * dvpal, yv16_pitch_uv * dvpal);
+                        src_pitch_v * dvpal, yv16_pitch_uv * dvpal, cubic_coefficients);
         }
     }
 
@@ -248,29 +256,35 @@ create_yv12to422(AVSValue args, void* user_data, IScriptEnvironment* env)
     if (!vi.IsYV12()) {
         env->ThrowError("YV12To422: input must be YV12.\n");
     }
+
     if (vi.height % 4 > 0) {
         env->ThrowError("YV12To422: height must be mod 4.\n");
     }
-
-    int itype = args[1].AsInt(1);
-    if (itype < 0 || itype > 1) {
-        env->ThrowError("YV12To422: itype must be set to 0, or 1.\n");
+    if (vi.height < 16) {
+        env->ThrowError(
+            "YV12To422: height must be 16 or more.");
     }
 
-    bool interlaced = args[2].AsBool(false);
+    bool interlaced = args[1].AsBool(false);
+
+    int itype = args[2].AsInt(2);
+    if (itype < 0 || itype > 2) {
+        env->ThrowError("YV12To422: itype must be set to 0, 1, or 2.\n");
+    }
+
     int cplace = args[3].AsInt(interlaced ? 2 : 1);
     if (cplace < 0 || cplace > 3) {
         env->ThrowError("YV12To422: cplace must be set to 0, 1, 2, or 3.");
     }
 
     bool avx2 = false;
-    if (args[6].AsBool(false) && has_avx2()) {
+    if (args[7].AsBool(false) && has_avx2()) {
         avx2 = true;
     }
 
     return new YV12To422(clip, itype, interlaced, cplace, args[8].AsFloat(0.0),
                          args[9].AsFloat(0.75), args[5].AsBool(true), avx2,
-                         args[4].AsBool(false), args[7].AsBool(false) ? 2 : 1,
+                         args[4].AsBool(false), args[6].AsBool(false) ? 2 : 1,
                          env);
 }
 
@@ -283,13 +297,13 @@ AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors)
     AVS_linkage = vectors;
     env->AddFunction("YV12To422",
                      /* 0*/ "c"
-                     /* 1*/ "[itype]i"
-                     /* 2*/ "[interlaced]b"
+                     /* 1*/ "[interlaced]b"
+                     /* 2*/ "[itype]i"
                      /* 3*/ "[cplace]i"
                      /* 4*/ "[lshift]b"
                      /* 5*/ "[yuy2]b"
-                     /* 6*/ "[avx2]b"
-                     /* 7*/ "[threads]b"
+                     /* 6*/ "[threads]b"
+                     /* 7*/ "[avx2]b"
                      /* 8*/ "[b]f"
                      /* 9*/ "[c]f",
 

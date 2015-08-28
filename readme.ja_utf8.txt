@@ -17,20 +17,22 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
 
 使い方：
 
-    YV12To422(clip, int "itype", bool "interlaced", int "cplace", bool "lshift",
-              bool "yuy2", bool "avx2", bool "threads")
+    YV12To422(clip, bool "interlaced", int "itype", int "cplace", bool "lshift",
+              bool "yuy2", bool "threads", bool "avx2", float "b", float "c")
 
-    まだitype=2とか実装してないので、オプションは変更される可能性が大きいです。
-
-    itype - 色差の補間方法
-        0 - 補間しない(nearest neighbor)
-        1 - 線型補間(linear)
-
-        default: 1
 
     interlaced - インタレか否か
 
         default: false
+
+
+    itype - 色差の補間方法
+        0 - 補間しない(nearest neighbor)
+        1 - 線型補間(linear)
+        2 - 三次補間(cubic)
+
+        default: 2
+
 
     cplace - 色差のサンプルの位置を指定する(垂直方向のみ)
 
@@ -101,6 +103,15 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
         default: true
 
 
+    threads - 色差の処理を2スレッドで行うか否か。
+
+        trueにすれば色差の補間処理をUとVで別のスレッドで同時に行います。
+        ただし、速くなるかどうかは素材の解像度や補間処理の複雑さによって異なります。
+        1920x1080程度のサイズでitype=0の場合は、trueにしてもほとんど変わらないか
+        かえって遅くなることが多いようです。
+        下手にtrueにするよりはbitcoinマイニングでもしてるほうがまだ建設的かもしれません。
+
+
     avx2 - 処理をAVX2を使って行うか否か。
 
         yv12toyuy2のthreadsをやめた替わりにSSE2を標準で使うようにしました。
@@ -114,13 +125,13 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
         参考URL: https://github.com/AviSynth/AviSynthPlus/commit/ab4ea303b4ca78620c2ef90fdaad184bc18b7708
 
 
-    threads - 色差の処理を2スレッドで行うか否か。
+    b/c - itype=2の場合の係数の調整
 
-        trueにすれば色差の補間処理をUとVで別のスレッドで同時に行います。
-        ただし、速くなるかどうかは素材の解像度や補間処理の複雑さによって異なります。
-        1920x1080程度のサイズでitype=0の場合は、trueにしてもほとんど変わらないか
-        かえって遅くなることが多いようです。
-        下手にtrueにするよりはbitcoinマイニングでもしてるほうがまだ建設的かもしれません。
+        itype=2の場合、avisynth本体のBicubicResize同様、Mitchell-Netravariフィルタの係数を
+        指定できます。
+        bを大きくすればボケやすく、cを高くすればリンギングが発生します。
+
+        default: b=0.0  c=0.75
 
 
 ライセンス:

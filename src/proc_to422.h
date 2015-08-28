@@ -32,11 +32,15 @@
 
 using proc_to422 = void (__stdcall *)(
     const int aligned_width, const int height, const uint8_t* srcp,
-    uint8_t* dstp, int src_pitch, int dst_pitch);
+    uint8_t* dstp, int src_pitch, int dst_pitch, const int16_t* coeffs);
 
 proc_to422 get_proc_chroma(int itype, int cplace, bool interlaced, bool avx2);
 
-proc_to422 get_proc_horizontal_shift(bool use_avx2);
+using proc_horizontal = void(__stdcall *)(
+    const int aligned_width, const int height, const uint8_t* srcp,
+    uint8_t* dstp, int src_pitch, int dst_pitch);
+
+proc_horizontal get_proc_horizontal_shift(bool use_avx2);
 
 static inline int aligned_size(int x, int align)
 {
