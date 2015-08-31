@@ -38,7 +38,7 @@
 #include "simd.h"
 
 
-#define YV12TO422_VERSION "1.0.0"
+#define YV12TO422_VERSION "1.0.1"
 
 
 using planar_to_packed = void (__stdcall *)(
@@ -243,7 +243,7 @@ GetFrame(int n, IScriptEnvironment* env)
                dst->GetWritePtr(), dst->GetRowSize(), src_pitch_y,
                yv16_pitch_uv, dst->GetPitch());
 
-    return dst;
+    return env->Subframe(dst, 0, dst->GetPitch(), vi.RowSize(), vi.height);
 }
 
 extern int has_avx2();
