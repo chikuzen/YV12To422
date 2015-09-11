@@ -44,47 +44,44 @@
 using planar_to_packed = void (__stdcall *)(
     const int width, const int height, const uint8_t* srcpy,
     const uint8_t* srcpu, const uint8_t* srcpv, uint8_t* dstp,
-    const int dst_rowsize, const int src_pitch_y, const int src_pitch_uv,
-    const int dst_pitch);
+    const int src_pitch_y, const int src_pitch_uv, const int dst_pitch);
 
 
-template <typename T>
+template <int MODE>
 static void __stdcall
-planar_to_yuy2(const int widthuv, const int height, const uint8_t* srcpy,
+planar_to_yuy2(const int width, const int height, const uint8_t* srcpy,
                const uint8_t* srcpu, const uint8_t* srcpv, uint8_t* dstp,
-               const int dst_rowsize, const int src_pitch_y,
-               const int src_pitch_uv, const int dst_pitch)
+               const int pitch_y, const int pitch_uv, const int dst_pitch)
 {
+    const int w = (width + 7) / 16 * 16;
+
     for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < widthuv; x += sizeof(T)) {
-            T y0, y1, y2, y3, u0, u1, v0, v1;
-            y0 = load_reg((T*)(srcpy + 2 * x));
-            cvtepu8_epi16x2(y0, y1);
-            y2 = load_reg((T*)(srcpy + 2 * x + sizeof(T)));
-            cvtepu8_epi16x2(y2, y3);
+        for (int x = 0; x < w; x += 16) {
+            __m128i y = load_reg((__m128i*)(srcpy + x));
+            __m128i u = _mm_loadl_epi64((__m128i*)(srcpu + x / 2));
+            __m128i v = _mm_loadl_epi64((__m128i*)(srcpv + x / 2));
 
-            u0 = load_reg((T*)(srcpu + x));
-            cvtepu8_epi16x2r(u0, u1);
-            v0 = load_reg((T*)(srcpv + x));
-            cvtepu8_epi16x2r(v0, v1);
+            __m128i uv = unpacklo_epi8(u, v);
+            __m128i yuv0 = unpacklo_epi8(y, uv);
+            __m128i yuv1 = unpackhi_epi8(y, uv);
 
-            y0 = or_reg(y0, unpacklo_epi16(u0, v0));
-            y1 = or_reg(y1, unpackhi_epi16(u0, v0));
-            y2 = or_reg(y2, unpacklo_epi16(u1, v1));
-            y3 = or_reg(y3, unpackhi_epi16(u1, v1));
-
-            int dpos = 4 * x;
-            stream_reg((T*)(dstp + dpos + 0 * sizeof(T)), y0);
-            stream_reg((T*)(dstp + dpos + 1 * sizeof(T)), y1);
-            stream_reg((T*)(dstp + dpos + 2 * sizeof(T)), y2);
-            stream_reg((T*)(dstp + dpos + 3 * sizeof(T)), y3);
+            stream_reg((__m128i*)(dstp + 2 * x), yuv0);
+            stream_reg((__m128i*)(dstp + 2 * x + 16), yuv1);
         }
-        srcpy += src_pitch_y;
-        srcpu += src_pitch_uv;
-        srcpv += src_pitch_uv;
+        if (MODE > 0) {
+            __m128i y = load_reg((__m128i*)(srcpy + w));
+            __m128i u = _mm_loadl_epi64((__m128i*)(srcpu + w / 2));
+            __m128i v = _mm_loadl_epi64((__m128i*)(srcpv + w / 2));
+
+            __m128i uv = unpacklo_epi8(u, v);
+            __m128i yuv0 = unpacklo_epi8(y, uv);
+            stream_reg((__m128i*)(dstp + 2 * w), yuv0);
+        }
+        srcpy += pitch_y;
+        srcpu += pitch_uv;
+        srcpv += pitch_uv;
         dstp += dst_pitch;
     }
-
 }
 
 
@@ -130,7 +127,7 @@ YV12To422(PClip _child, int itype, bool interlaced, int cplace, double b,
     memalign = avx2 ? sizeof(__m256i) : sizeof(__m128i);
     proc_chroma = get_proc_chroma(itype, cplace, interlaced, avx2);
     proc_chroma_qpel_shift_h = get_proc_horizontal_shift(avx2);
-    yv16toyuy2 = avx2 ? planar_to_yuy2<__m256i> : planar_to_yuy2<__m128i>;
+    yv16toyuy2 = vi.width - (vi.width + 7) / 16 * 16 > 0 ? planar_to_yuy2<1> : planar_to_yuy2<0>;
     if (itype == 2) {
         set_cubic_coefficients(b, c, cubic_coefficients, interlaced, cplace);
     }
@@ -142,8 +139,6 @@ YV12To422(PClip _child, int itype, bool interlaced, int cplace, double b,
     vi_yv16.pixel_type = VideoInfo::CS_YV16;
     if (yuy2out) {
         vi.pixel_type = VideoInfo::CS_YUY2;
-        memcpy(&vi_yuy2, &vi, sizeof(VideoInfo));
-        vi_yuy2.width = aligned_size(vi.width, memalign * 2);
     } else {
         vi.pixel_type = VideoInfo::CS_YV16;
     }
@@ -237,13 +232,12 @@ GetFrame(int n, IScriptEnvironment* env)
         return yv16;
     }
 
-    PVideoFrame dst = env->NewVideoFrame(vi_yuy2, memalign);
+    PVideoFrame dst = env->NewVideoFrame(vi, memalign);
 
-    yv16toyuy2(yv16->GetRowSize(PLANAR_U), vi.height, srcpy, yv16pu, yv16pv,
-               dst->GetWritePtr(), dst->GetRowSize(), src_pitch_y,
-               yv16_pitch_uv, dst->GetPitch());
+    yv16toyuy2(vi.width, vi.height, srcpy, yv16pu, yv16pv, dst->GetWritePtr(),
+               src_pitch_y, yv16_pitch_uv, dst->GetPitch());
 
-    return env->Subframe(dst, 0, dst->GetPitch(), vi.RowSize(), vi.height);
+    return dst;
 }
 
 extern int has_avx2();
