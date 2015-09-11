@@ -14,7 +14,7 @@ avisynth2.60/avisynth+用のフィルタープラグインです。
 ・WindowsVista sp2以降
 ・VisualStudio2013用VC++再頒布可能パッケージ
 
-バージョン 1.0.1
+バージョン 1.0.2
 
 使い方：
 
